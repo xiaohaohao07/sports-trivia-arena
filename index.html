@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>体育百科知识竞答 · Sports Trivia Arena</title>
+<style>
+:root{
+  --bg:#0A1628;--card:#111D33;--border:rgba(255,255,255,.08);
+  --green:#00E676;--gold:#FFD740;--blue:#448AFF;--red:#FF5252;--cyan:#18FFFF;
+  --t1:#FFFFFF;--t2:rgba(255,255,255,.7);--t3:rgba(255,255,255,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Noto Sans SC",sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(ellipse at 20% 0%,rgba(0,230,118,.06),transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(68,138,255,.06),transparent 50%),var(--bg)}
+.wrap{max-width:880px;margin:0 auto;padding:40px 20px 80px}
+.screen{display:none;animation:fade .4s ease}.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+
+/* ===== INTRO ===== */
+.intro{text-align:center;padding:60px 20px 20px}
+.logo{font-size:64px;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(0,230,118,.4))}
+.intro h1{font-size:42px;font-weight:800;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.02em}
+.intro h1 small{display:block;font-size:14px;font-weight:400;letter-spacing:.4em;-webkit-text-fill-color:var(--t3);margin-top:8px;text-transform:uppercase}
+.intro .desc{color:var(--t2);font-size:15px;line-height:1.9;max-width:600px;margin:24px auto}
+.sports-icons{display:flex;justify-content:center;gap:12px;margin:28px 0;flex-wrap:wrap}
+.sport-tag{padding:6px 16px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--t2);letter-spacing:.1em}
+.id-box{max-width:400px;margin:32px auto}
+.id-box label{display:block;font-size:12px;color:var(--t3);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px}
+.id-box input{width:100%;padding:16px 20px;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--t1);font-size:18px;font-family:inherit;outline:none;text-align:center;letter-spacing:.1em;transition:border .3s}
+.id-box input:focus{border-color:var(--green)}
+.id-box input::placeholder{color:var(--t3)}
+.settings{display:flex;gap:12px;justify-content:center;margin:24px 0}
+.sopt{padding:10px 20px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--t2);transition:all .2s;font-family:inherit}
+.sopt:hover,.sopt.sel{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.08)}
+.btn{display:inline-block;padding:16px 52px;background:linear-gradient(135deg,var(--green),#00C853);color:var(--bg);border:none;border-radius:50px;font-family:inherit;font-size:16px;font-weight:700;letter-spacing:.15em;cursor:pointer;transition:all .3s;box-shadow:0 8px 32px rgba(0,230,118,.3)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,230,118,.4)}
+.btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
+
+/* ===== QUIZ ===== */
+.hud{position:sticky;top:0;background:rgba(10,22,40,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:14px 0;margin:-40px -20px 28px;z-index:10}
+.hud-inner{max-width:880px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:16px}
+.hud .qno{font-size:13px;color:var(--green);font-weight:700;letter-spacing:.1em;min-width:60px}
+.hud .track{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.hud .fill{height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .4s}
+.hud .score-disp{font-size:13px;color:var(--gold);font-weight:700;min-width:80px;text-align:right}
+.hud .timer{font-size:22px;font-weight:800;color:var(--t1);min-width:48px;text-align:center;font-variant-numeric:tabular-nums}
+.hud .timer.warn{color:var(--red);animation:pulse .5s infinite}
+
+.qcard{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px 36px;box-shadow:0 12px 48px rgba(0,0,0,.3)}
+.qcat{display:inline-block;padding:4px 14px;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);border-radius:20px;font-size:11px;color:var(--green);letter-spacing:.15em;margin-bottom:16px}
+.qtext{font-size:22px;font-weight:600;line-height:1.7;margin-bottom:28px;color:var(--t1)}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{padding:16px 22px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .25s;font-size:15px;color:var(--t2);font-family:inherit;text-align:left;display:flex;align-items:center;gap:14px}
+.opt .key{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--t3);flex-shrink:0;transition:all .25s}
+.opt:hover:not(.locked){background:rgba(68,138,255,.08);border-color:var(--blue);transform:translateX(4px)}
+.opt:hover:not(.locked) .key{background:rgba(68,138,255,.2);color:var(--blue)}
+.opt.correct{background:rgba(0,230,118,.12)!important;border-color:var(--green)!important;color:var(--green)!important}
+.opt.correct .key{background:var(--green)!important;color:var(--bg)!important}
+.opt.wrong{background:rgba(255,82,82,.1)!important;border-color:var(--red)!important;color:var(--red)!important}
+.opt.wrong .key{background:var(--red)!important;color:#fff!important}
+.opt.locked{cursor:default}
+.explain{margin-top:20px;padding:16px 20px;background:rgba(255,215,64,.06);border-left:3px solid var(--gold);border-radius:6px;font-size:13px;color:var(--t2);line-height:1.8;display:none}
+.explain.show{display:block;animation:fade .3s}
+
+.qnav{display:flex;justify-content:flex-end;margin-top:24px}
+.qnav button{padding:12px 36px;background:linear-gradient(135deg,var(--green),#00C853);color:var(--bg);border:none;border-radius:50px;font-family:inherit;font-size:14px;font-weight:700;letter-spacing:.1em;cursor:pointer;transition:all .2s;display:none}
+.qnav button.show{display:block}
+.qnav button:hover{transform:translateY(-2px)}
+
+/* ===== RESULTS ===== */
+.rh{text-align:center;padding:20px 0 32px}
+.rh .badge{display:inline-block;padding:6px 20px;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);border-radius:30px;font-size:11px;color:var(--green);letter-spacing:.4em;text-transform:uppercase;margin-bottom:20px}
+.rh h2{font-size:40px;font-weight:800;background:linear-gradient(135deg,var(--green),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.rh .sub{font-size:14px;color:var(--t3);margin-top:8px;letter-spacing:.1em}
+
+.sec{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.sec-icon{font-size:20px}
+.sec-title{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:.05em}
+.sec-sub{margin-left:auto;font-size:11px;color:var(--t3);letter-spacing:.2em;text-transform:uppercase}
+
+.big-score{text-align:center;padding:20px 0}
+.big-score .num{font-size:72px;font-weight:900;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.big-score .of{font-size:18px;color:var(--t3);margin-top:4px}
+.big-score .rank-text{font-size:16px;color:var(--gold);margin-top:12px;font-weight:600}
+
+.cat-bars{display:flex;flex-direction:column;gap:14px}
+.cat-bar{display:flex;align-items:center;gap:14px}
+.cat-bar .label{min-width:70px;font-size:13px;color:var(--t2);text-align:right}
+.cat-bar .track{flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:10px;overflow:hidden;position:relative}
+.cat-bar .fill{height:100%;border-radius:10px;transition:width 1s ease}
+.cat-bar .val{min-width:50px;font-size:13px;color:var(--t3);font-variant-numeric:tabular-nums}
+.cat-bar[data-sport="足球"] .fill{background:linear-gradient(90deg,#4CAF50,#81C784)}
+.cat-bar[data-sport="篮球"] .fill{background:linear-gradient(90deg,#FF9800,#FFB74D)}
+.cat-bar[data-sport="网球"] .fill{background:linear-gradient(90deg,#CDDC39,#E6EE9C)}
+.cat-bar[data-sport="橄榄球"] .fill{background:linear-gradient(90deg,#795548,#A1887F)}
+.cat-bar[data-sport="棒球"] .fill{background:linear-gradient(90deg,#F44336,#E57373)}
+.cat-bar[data-sport="冰球"] .fill{background:linear-gradient(90deg,#03A9F4,#4FC3F7)}
+.cat-bar[data-sport="奥运"] .fill{background:linear-gradient(90deg,var(--gold),#FFEE58)}
+.cat-bar[data-sport="综合"] .fill{background:linear-gradient(90deg,#9C27B0,#CE93D8)}
+
+canvas#radarC{max-width:100%;margin:0 auto;display:block}
+
+/* leaderboard */
+.lb-table{width:100%;border-collapse:collapse}
+.lb-table th{font-size:11px;color:var(--t3);letter-spacing:.15em;text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.lb-table td{padding:12px;font-size:14px;color:var(--t2);border-bottom:1px solid rgba(255,255,255,.04)}
+.lb-table tr.me td{color:var(--green);font-weight:700}
+.lb-table .rank-cell{font-weight:800;color:var(--gold);font-size:16px;width:40px}
+.lb-table .score-cell{font-variant-numeric:tabular-nums;font-weight:600}
+.lb-table .bar-cell{width:40%}
+.lb-table .bar-cell .mini-bar{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.lb-table .bar-cell .mini-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:3px}
+.lb-empty{text-align:center;padding:24px;color:var(--t3);font-size:13px}
+
+.analysis-text{font-size:14px;color:var(--t2);line-height:2;margin-top:16px;padding:16px;background:rgba(255,255,255,.03);border-radius:12px}
+
+.actions{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap}
+.actions button{padding:12px 28px;background:var(--card);border:1px solid var(--border);color:var(--t2);border-radius:50px;cursor:pointer;font-family:inherit;font-size:13px;letter-spacing:.1em;transition:all .2s}
+.actions button:hover{border-color:var(--green);color:var(--green)}
+
+@media(max-width:640px){
+  .wrap{padding:20px 14px 60px}
+  .intro h1{font-size:32px}
+  .qcard{padding:28px 20px;border-radius:16px}
+  .qtext{font-size:18px}
+  .hud{margin:-20px -14px 20px}
+  .big-score .num{font-size:56px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ===== INTRO ===== -->
+<div class="screen active" id="s-intro">
+  <div class="intro">
+    <div class="logo">🏟️</div>
+    <h1>体育百科竞答<small>Sports Trivia Arena</small></h1>
+    <p class="desc">涵盖足球、篮球、网球、橄榄球、棒球、冰球及奥运会项目，从经典历史到奇闻逸事，100 道题全方位检验你的体育知识储备。你的成绩将被记入排行榜，与所有挑战者一较高下。</p>
+    <div class="sports-icons">
+      <span class="sport-tag">⚽ 足球</span><span class="sport-tag">🏀 篮球</span>
+      <span class="sport-tag">🎾 网球</span><span class="sport-tag">🏈 橄榄球</span>
+      <span class="sport-tag">⚾ 棒球</span><span class="sport-tag">🏒 冰球</span>
+      <span class="sport-tag">🏅 奥运</span><span class="sport-tag">🌐 综合</span>
+    </div>
+    <div class="id-box">
+      <label>输入你的玩家 ID</label>
+      <input type="text" id="pid" placeholder="例：SportsKing_99" maxlength="20" autocomplete="off">
+    </div>
+    <div class="settings">
+      <button class="sopt sel" data-n="30" onclick="setN(this)">30 题 · 快速</button>
+      <button class="sopt" data-n="50" onclick="setN(this)">50 题 · 标准</button>
+      <button class="sopt" data-n="100" onclick="setN(this)">100 题 · 全马</button>
+    </div>
+    <button class="btn" id="startBtn" onclick="startGame()" disabled>开 始 竞 答</button>
+  </div>
+</div>
+
+<!-- ===== QUIZ ===== -->
+<div class="screen" id="s-quiz">
+  <div class="hud"><div class="hud-inner">
+    <span class="qno" id="qno">01/30</span>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <span class="timer" id="timer">20</span>
+    <span class="score-disp" id="sd">🏆 0</span>
+  </div></div>
+  <div class="qcard" id="qcard"></div>
+  <div class="qnav"><button id="nextBtn" onclick="nextQ()">下一题 →</button></div>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div class="screen" id="s-result">
+  <div class="rh">
+    <div class="badge">Game Over</div>
+    <h2 id="finalTitle">竞答结束</h2>
+    <div class="sub" id="finalSub"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-icon">🏆</span><span class="sec-title">最终成绩</span><span class="sec-sub">Final Score</span></div>
+    <div class="big-score">
+      <div class="num" id="finalScore">0</div>
+      <div class="of" id="finalOf"></div>
+      <div class="rank-text" id="rankText"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-icon">📊</span><span class="sec-title">运动分项成绩</span><span class="sec-sub">Category Breakdown</span></div>
+    <div class="cat-bars" id="catBars"></div>
+    <div style="display:flex;justify-content:center;margin-top:24px"><canvas id="radarC" width="420" height="420"></canvas></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-icon">🔍</span><span class="sec-title">知识画像分析</span><span class="sec-sub">Analysis</span></div>
+    <div class="analysis-text" id="analysis"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-icon">🏅</span><span class="sec-title">排行榜</span><span class="sec-sub">Leaderboard</span></div>
+    <div id="lbWrap"></div>
+  </div>
+
+  <div class="actions">
+    <button onclick="location.reload()">重新挑战</button>
+    <button onclick="shareResult()">复制成绩</button>
+    <button onclick="clearLB()">清除排行榜</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ============ 题库（100题） ============
+const CATS=['足球','篮球','网球','橄榄球','棒球','冰球','奥运','综合'];
+const DB=[
+// ====== 足球 (18) ======
+{c:'足球',t:'FIFA 世界杯历史上，哪个国家夺冠次数最多？',o:['巴西','德国','意大利','阿根廷'],a:0,x:'巴西队共获得 5 次世界杯冠军（1958/1962/1970/1994/2002），是夺冠次数最多的国家。'},
+{c:'足球',t:'足球比赛中，一名球员在一场比赛中进 3 球被称为？',o:['大四喜','帽子戏法','梅开二度','独中五元'],a:1,x:'帽子戏法（Hat-trick）源自板球运动，指一场比赛中完成三个进球。'},
+{c:'足球',t:'2022 年卡塔尔世界杯决赛中，阿根廷队的对手是？',o:['克罗地亚','法国','巴西','摩洛哥'],a:1,x:'阿根廷在 2022 年世界杯决赛中通过点球大战击败法国队夺冠。'},
+{c:'足球',t:'哪位球员被称为"外星人"（O Fenômeno）？',o:['罗纳尔迪尼奥','罗纳尔多','里瓦尔多','卡卡'],a:1,x:'巴西前锋罗纳尔多因超凡的技术和速度被称为"外星人"。'},
+{c:'足球',t:'英超联赛历史上进球最多的球员是？',o:['韦恩·鲁尼','阿兰·希勒','蒂埃里·亨利','安迪·科尔'],a:1,x:'阿兰·希勒以 260 个英超进球保持着联赛历史最佳射手纪录。'},
+{c:'足球',t:'标准足球场上，每队同时上场的球员数量是？',o:['10人','11人','12人','9人'],a:1,x:'每队 11 名球员同时在场上，包括一名守门员。'},
+{c:'足球',t:'越位规则中，进攻球员必须确保身前至少有几名防守球员（含门将）？',o:['1名','2名','3名','无要求'],a:1,x:'进攻球员在接球瞬间，身前至少需要有 2 名防守球员（通常是门将+一名后卫）。'},
+{c:'足球',t:'西班牙足球甲级联赛中，哪两支球队的对决被称为"国家德比"？',o:['皇马 vs 马竞','巴萨 vs 马竞','皇马 vs 巴萨','塞维利亚 vs 皇家贝蒂斯'],a:2,x:'皇家马德里与巴塞罗那之间的比赛被称为"El Clásico"（国家德比）。'},
+{c:'足球',t:'世界杯历史上，单届赛事个人进球纪录保持者是？',o:['贝利','盖德·穆勒','朱斯特·方丹','克洛泽'],a:2,x:'法国球员方丹在 1958 年世界杯中打入 13 球，至今无人打破。'},
+{c:'足球',t:'红牌在足球中意味着什么？',o:['警告','直接罚下','暂时离场10分钟','取消下场比赛资格'],a:1,x:'红牌意味着球员被直接罚下场，且该队不能补充替换球员。'},
+{c:'足球',t:'哪位守门员以"蝎子摆尾"扑救闻名？',o:['布冯','雷内·伊基塔','诺伊尔','舒梅切尔'],a:1,x:'哥伦比亚门将伊基塔在 1995 年用脚后跟完成了经典的"蝎子摆尾"扑救。'},
+{c:'足球',t:'UEFA 欧洲冠军联赛夺冠次数最多的俱乐部是？',o:['AC米兰','利物浦','皇家马德里','拜仁慕尼黑'],a:2,x:'皇家马德里以 15 次欧冠冠军遥遥领先于其他所有俱乐部。'},
+{c:'足球',t:'足球场上的点球点距球门线多远？',o:['9.15米','11米','12码(约10.97米)','10米'],a:2,x:'点球点距球门线 12 码（约 10.97 米），这也是"12码"说法的由来。'},
+{c:'足球',t:'世界杯历史上累计进球最多的球员是？',o:['罗纳尔多','贝利','米洛斯拉夫·克洛泽','盖德·穆勒'],a:2,x:'德国球员克洛泽以 16 个世界杯进球成为世界杯历史最佳射手。'},
+{c:'足球',t:'足球运动起源于哪个国家？',o:['巴西','意大利','英格兰','中国（蹴鞠）'],a:2,x:'现代足球起源于 19 世纪的英格兰，但 FIFA 承认中国古代的蹴鞠为足球的最早形式。此题指现代足球规则的诞生地。'},
+{c:'足球',t:'梅西在 2012 年自然年中打进了多少个进球？',o:['73','86','91','79'],a:2,x:'梅西在 2012 年打入 91 粒进球，打破了盖德·穆勒保持的自然年 85 球纪录。'},
+{c:'足球',t:'"手球之神"事件发生在哪届世界杯？',o:['1982年','1986年','1990年','1994年'],a:1,x:'1986 年世界杯四分之一决赛，马拉多纳用手将球打入英格兰球门，被称为"上帝之手"。'},
+{c:'足球',t:'VAR 技术在世界杯上首次使用是在哪一届？',o:['2014年巴西','2018年俄罗斯','2022年卡塔尔','2010年南非'],a:1,x:'视频助理裁判（VAR）在 2018 年俄罗斯世界杯上首次被引入使用。'},
+
+// ====== 篮球 (16) ======
+{c:'篮球',t:'NBA 历史上获得总冠军次数最多的球队是？',o:['芝加哥公牛','洛杉矶湖人','波士顿凯尔特人','金州勇士'],a:2,x:'波士顿凯尔特人以 17 次总冠军位居 NBA 历史之首。'},
+{c:'篮球',t:'篮球运动的发明者是谁？',o:['迈克尔·乔丹','詹姆斯·奈史密斯','威尔特·张伯伦','拉里·伯德'],a:1,x:'加拿大裔美国人詹姆斯·奈史密斯于 1891 年发明了篮球运动。'},
+{c:'篮球',t:'NBA 单场个人得分纪录是多少分？',o:['81分','100分','72分','63分'],a:1,x:'威尔特·张伯伦在 1962 年 3 月 2 日对阵纽约尼克斯的比赛中砍下 100 分。'},
+{c:'篮球',t:'NBA 标准比赛一节多长时间？',o:['10分钟','12分钟','15分钟','8分钟'],a:1,x:'NBA 每节比赛时长 12 分钟，全场共 48 分钟。FIBA 规则为每节 10 分钟。'},
+{c:'篮球',t:'以下哪位球员的球衣号码是 23 号？',o:['科比·布莱恩特','勒布朗·詹姆斯','凯文·杜兰特','斯蒂芬·库里'],a:1,x:'勒布朗·詹姆斯在骑士和湖人时期身穿 23 号球衣（致敬乔丹）。迈克尔·乔丹也是 23 号。'},
+{c:'篮球',t:'NBA 三分线距离篮筐多远？',o:['6.25米','6.75米','7.24米','6.10米'],a:2,x:'NBA 三分线距篮筐 7.24 米（23 英尺 9 英寸），底角为 6.71 米。'},
+{c:'篮球',t:'哪位球员被称为"魔术师"？',o:['拉里·伯德','厄尔文·约翰逊','伊赛亚·托马斯','奥斯卡·罗伯特森'],a:1,x:'"魔术师"厄尔文·约翰逊（Magic Johnson）是湖人队传奇控卫。'},
+{c:'篮球',t:'科比·布莱恩特在告别战中得了多少分？',o:['50分','60分','48分','81分'],a:1,x:'2016 年 4 月 13 日，科比在退役之战中砍下 60 分，完美告别。'},
+{c:'篮球',t:'NBA 选秀中，第一顺位通常被称为？',o:['状元签','榜眼签','探花签','乐透签'],a:0,x:'NBA 选秀中第一顺位称为"状元签"（No.1 Overall Pick）。'},
+{c:'篮球',t:'以下哪支球队不属于 NBA？',o:['多伦多猛龙','墨尔本联队','布鲁克林篮网','孟菲斯灰熊'],a:1,x:'墨尔本联队属于澳大利亚 NBL 联赛，不是 NBA 球队。'},
+{c:'篮球',t:'迈克尔·乔丹一共获得了几次 NBA 总冠军？',o:['5次','6次','7次','4次'],a:1,x:'乔丹在公牛队获得 6 次总冠军（1991-1993，1996-1998），两次三连冠。'},
+{c:'篮球',t:'篮球场上，"三秒违例"限制球员在哪个区域停留不超过三秒？',o:['三分线外','中圈','禁区（油漆区）','罚球线'],a:2,x:'进攻三秒违例指进攻球员不能在对方禁区（油漆区）内连续停留超过 3 秒。'},
+{c:'篮球',t:'"梦之队"首次出现在哪届奥运会？',o:['1988年汉城','1992年巴塞罗那','1996年亚特兰大','2000年悉尼'],a:1,x:'1992 年巴塞罗那奥运会首次允许 NBA 职业球员参赛，美国组建了传奇的"梦之队"。'},
+{c:'篮球',t:'2024年NBA得分王是以下哪位球员？',o:['卢卡·东契奇','乔尔·恩比德','杰伦·布伦森','谢伊·吉尔杰斯-亚历山大'],a:0,x:'卢卡·东契奇在2023-24赛季以场均33.9分当选得分王。'},
+{c:'篮球',t:'NBA 历史上连续得分纪录保持时间最长的记录——连续上双场次纪录保持者是？',o:['勒布朗·詹姆斯','卡尔·马龙','迈克尔·乔丹','威尔特·张伯伦'],a:0,x:'勒布朗保持着多项连续得分上双纪录，体现了他惊人的持久性。'},
+{c:'篮球',t:'WNBA 是什么的缩写？',o:['World National Basketball Association','Women\'s National Basketball Association','Western National Basketball Association','World New Basketball Association'],a:1,x:'WNBA 全称为 Women\'s National Basketball Association（美国女子职业篮球联赛）。'},
+
+// ====== 网球 (12) ======
+{c:'网球',t:'网球四大满贯赛事中，哪一项在红土场地上进行？',o:['温布尔登','澳大利亚公开赛','法国公开赛','美国公开赛'],a:2,x:'法国公开赛（罗兰·加洛斯）是四大满贯中唯一的红土赛事。'},
+{c:'网球',t:'网球比赛中，"Love"代表什么分数？',o:['15分','30分','0分','40分'],a:2,x:'"Love"在网球计分中代表 0 分，据说源自法语"l\'oeuf"（鸡蛋=零）。'},
+{c:'网球',t:'男子网球大满贯单打冠军数纪录保持者是？',o:['罗杰·费德勒','拉斐尔·纳达尔','诺瓦克·德约科维奇','皮特·桑普拉斯'],a:2,x:'德约科维奇以 24 个大满贯单打冠军位居历史第一。'},
+{c:'网球',t:'温布尔登网球锦标赛的场地类型是？',o:['硬地','红土','草地','室内地毯'],a:2,x:'温布尔登是四大满贯中唯一的草地赛事，拥有超过百年历史。'},
+{c:'网球',t:'网球比赛中，"Ace"是指什么？',o:['双误','发球直接得分','破发','抢七'],a:1,x:'Ace 球指发球直接落在有效区域内且对手未能触及球拍即得分。'},
+{c:'网球',t:'以下哪位女子网球运动员获得大满贯次数最多？',o:['小威廉姆斯','施特菲·格拉芙','玛格丽特·考特','大威廉姆斯'],a:2,x:'澳大利亚选手玛格丽特·考特以 24 个大满贯单打冠军保持历史纪录。'},
+{c:'网球',t:'网球比赛中的"Deuce"指比分为？',o:['30-30','40-40','15-15','赛点'],a:1,x:'Deuce 即"平分"，指双方在一局中各得 40 分时的状态。'},
+{c:'网球',t:'拉斐尔·纳达尔在哪项大满贯中夺冠次数最多？',o:['澳大利亚公开赛','温布尔登','法国公开赛','美国公开赛'],a:2,x:'纳达尔在法网夺得 14 次冠军，被称为"红土之王"。'},
+{c:'网球',t:'网球大满贯男单决赛，一般采用几盘几胜制？',o:['三盘两胜','五盘三胜','七盘四胜','一盘定胜负'],a:1,x:'男子大满贯单打采用五盘三胜制，这是大满贯区别于其他赛事的特点之一。'},
+{c:'网球',t:'历史上首位完成"年度金满贯"的网球运动员是？',o:['罗杰·费德勒','施特菲·格拉芙','塞雷娜·威廉姆斯','德约科维奇'],a:1,x:'格拉芙在 1988 年同年获得四大满贯和奥运金牌，完成唯一的年度金满贯。'},
+{c:'网球',t:'戴维斯杯是以下哪种性质的网球赛事？',o:['女子单打赛','男子国家队团体赛','混双邀请赛','青少年锦标赛'],a:1,x:'戴维斯杯（Davis Cup）是男子网球国家队之间的世界团体赛。'},
+{c:'网球',t:'ATP 和 WTA 分别代表什么？',o:['职业男子与职业女子网球协会','业余网球协会','世界网球联盟','网球教练协会'],a:0,x:'ATP（Association of Tennis Professionals）为职业男子网球协会，WTA（Women\'s Tennis Association）为职业女子网球协会。'},
+
+// ====== 橄榄球 (10) ======
+{c:'橄榄球',t:'NFL 的年度总决赛被称为什么？',o:['世界大赛','超级碗','NBA总决赛','斯坦利杯'],a:1,x:'超级碗（Super Bowl）是美国国家橄榄球联盟（NFL）的年度总决赛。'},
+{c:'橄榄球',t:'美式橄榄球中，达阵（Touchdown）得几分？',o:['3分','5分','6分','7分'],a:2,x:'达阵得 6 分，之后可以选择射门加 1 分或二次达阵加 2 分。'},
+{c:'橄榄球',t:'超级碗历史上夺冠次数最多的球队是？',o:['达拉斯牛仔','旧金山49人','新英格兰爱国者','匹兹堡钢人'],a:2,x:'新英格兰爱国者以 6 次超级碗冠军并列历史最多（与钢人队持平）。注：截至2024年。'},
+{c:'橄榄球',t:'橄榄球运动最早起源于哪个国家？',o:['美国','澳大利亚','英格兰','法国'],a:2,x:'橄榄球起源于 19 世纪英格兰的拉格比学校，传说一名学生在足球比赛中抱起球跑。'},
+{c:'橄榄球',t:'美式橄榄球中"四分卫"（Quarterback）是什么位置？',o:['防守核心','进攻核心','特勤组','替补'],a:1,x:'四分卫是进攻组的核心，负责传球和指挥进攻战术。'},
+{c:'橄榄球',t:'NFL 常规赛每队打多少场比赛？',o:['14场','16场','17场','18场'],a:2,x:'从2021赛季起，NFL常规赛扩展为每队 17 场比赛。'},
+{c:'橄榄球',t:'美式橄榄球的比赛场地长度（包含端区）是多少码？',o:['100码','110码','120码','90码'],a:2,x:'场地总长 120 码（含两端各 10 码的端区），比赛区域为 100 码。'},
+{c:'橄榄球',t:'在 NFL 中，"Hail Mary"是指什么？',o:['防守战术','长距离冲刺跑','孤注一掷的长传','犯规类型'],a:2,x:'Hail Mary 是指比赛末尾孤注一掷的超远距离前传，通常在绝望时使用。'},
+{c:'橄榄球',t:'橄榄球世界杯（Rugby World Cup）中夺冠次数最多的国家是？',o:['新西兰','南非','澳大利亚','英格兰'],a:1,x:'南非和新西兰各获得 4 次橄榄球世界杯冠军（截至 2023 年南非第四次夺冠）。此题以最新为准。'},
+{c:'橄榄球',t:'汤姆·布雷迪一共获得了几次超级碗冠军？',o:['5次','6次','7次','8次'],a:2,x:'汤姆·布雷迪共获得 7 次超级碗冠军，是 NFL 历史上最成功的四分卫。'},
+
+// ====== 棒球 (10) ======
+{c:'棒球',t:'美国职业棒球大联盟（MLB）的年度总决赛被称为？',o:['超级碗','世界大赛','NBA总决赛','大师赛'],a:1,x:'MLB 总决赛称为"世界大赛"（World Series），自 1903 年开始举办。'},
+{c:'棒球',t:'棒球比赛中，"本垒打"（Home Run）指的是？',o:['击球手跑完所有垒包得分','投手三振出局','内野安打','盗垒成功'],a:0,x:'本垒打指击球手将球击出场外围栏，或在球回传前跑完所有四个垒包得分。'},
+{c:'棒球',t:'棒球比赛标准打几局？',o:['7局','8局','9局','10局'],a:2,x:'标准的职业棒球比赛打 9 局，若平局则进入延长赛。'},
+{c:'棒球',t:'棒球中"K"代表什么？',o:['本垒打','三振出局','安打','保送'],a:1,x:'"K"代表三振出局（Strikeout），来源于 19 世纪计分手亨利·查德威克。'},
+{c:'棒球',t:'MLB 单赛季个人本垒打纪录保持者是？',o:['贝比·鲁斯','汉克·阿伦','巴里·邦兹','马克·麦奎尔'],a:2,x:'巴里·邦兹在 2001 年打出 73 支本垒打，至今为单赛季纪录。'},
+{c:'棒球',t:'以下哪个不是棒球中的守备位置？',o:['游击手','中锋','投手','捕手'],a:1,x:'中锋（Center）是篮球术语。棒球守备位置包括投手、捕手、一/二/三垒手、游击手和三名外野手。'},
+{c:'棒球',t:'日本职业棒球传奇球员铃木一朗（Ichiro）在 MLB 的成就包括？',o:['单赛季 262 支安打纪录','300 支本垒打','投手三冠王','从未被三振'],a:0,x:'铃木一朗在 2004 年打出 262 支安打，打破了尘封 84 年的单赛季安打纪录。'},
+{c:'棒球',t:'棒球场上投手丘到本垒板的距离是多少英尺？',o:['50英尺','60英尺6英寸','65英尺','55英尺'],a:1,x:'投手丘到本垒板的距离为 60 英尺 6 英寸（约 18.4 米），这个奇特的数字据说源自一次测量笔误。'},
+{c:'棒球',t:'贝比·鲁斯被称为什么绰号？',o:['棒球之神','竹片','苏丹','棒球大帝'],a:2,x:'贝比·鲁斯被称为"The Sultan of Swat"（挥棒之王）等多个绰号，是棒球史上最伟大的球员之一。'},
+{c:'棒球',t:'棒球比赛中，满垒时击出本垒打被称为？',o:['阳春全垒打','满贯全垒打','再见全垒打','场内全垒打'],a:1,x:'满贯全垒打（Grand Slam）指满垒时的本垒打，一次可得 4 分，是棒球中最激动人心的时刻之一。'},
+
+// ====== 冰球 (10) ======
+{c:'冰球',t:'NHL（国家冰球联盟）的总冠军奖杯叫什么？',o:['超级碗','拉里·奥布莱恩杯','斯坦利杯','世界大赛奖杯'],a:2,x:'斯坦利杯（Stanley Cup）是 NHL 的总冠军奖杯，也是北美四大职业体育中历史最悠久的冠军奖杯。'},
+{c:'冰球',t:'冰球比赛中每队同时上场几名球员？',o:['5人','6人','7人','4人'],a:1,x:'冰球每队场上 6 人：1 名守门员 + 5 名滑行球员。'},
+{c:'冰球',t:'NHL 历史上进球最多的球员是？',o:['马里奥·莱缪','西德尼·克罗斯比','韦恩·格雷茨基','戈尔迪·豪'],a:2,x:'韦恩·格雷茨基（"伟大的 99 号"）以 894 个进球和 2857 个总得分保持 NHL 历史纪录。'},
+{c:'冰球',t:'冰球中的"帽子戏法"和足球一样吗？',o:['是的，都指单场3球','不一样，冰球指2球','不一样，冰球指4球','冰球中没有这个说法'],a:0,x:'冰球中的帽子戏法同样指一名球员在单场比赛中进 3 球，球迷传统上会向冰面扔帽子庆祝。'},
+{c:'冰球',t:'冰球比赛分为几节？',o:['两节','三节','四节','不分节'],a:1,x:'冰球比赛分为三节，每节 20 分钟。'},
+{c:'冰球',t:'NHL 中被永久退役的只有一个号码——哪个号码属于谁？',o:['9号 戈尔迪·豪','66号 莱缪','99号 格雷茨基','33号 罗伊'],a:2,x:'99 号是唯一一个被 NHL 全联盟永久退役的号码，属于韦恩·格雷茨基。'},
+{c:'冰球',t:'冰球比赛中出现打架，裁判通常怎么处理？',o:['直接取消比赛','双方球员各罚5分钟','只罚先动手的','没有处罚'],a:1,x:'NHL 中打架通常判双方各罚 5 分钟大罚，打架在冰球文化中有其独特传统。'},
+{c:'冰球',t:'冰球中的"Zamboni"是什么？',o:['一种战术','冰面整理机','球员位置','犯规名称'],a:1,x:'Zamboni 是用于重新整理冰面的大型机器，在比赛间歇时出场，已成为冰球文化的标志。'},
+{c:'冰球',t:'加拿大国球是什么？',o:['橄榄球','冰球','棒球','曲棍球（冰球为冬季国球）'],a:3,x:'加拿大的官方国球是长曲棍球（夏季）和冰球（冬季），两者于 1994 年被正式确定。'},
+{c:'冰球',t:'奥运会冰球赛中，哪个国家在男子项目夺金次数最多？',o:['加拿大','俄罗斯/苏联','瑞典','美国'],a:0,x:'加拿大以 9 枚男子冰球奥运金牌位居历史第一。'},
+
+// ====== 奥运 (14) ======
+{c:'奥运',t:'现代奥林匹克运动会的创始人是谁？',o:['顾拜旦','萨马兰奇','巴赫','拉马兹兰'],a:0,x:'皮埃尔·德·顾拜旦（Pierre de Coubertin）是现代奥林匹克运动会的创始人。'},
+{c:'奥运',t:'第一届现代奥运会于哪一年在哪个城市举办？',o:['1896年 雅典','1900年 巴黎','1904年 圣路易斯','1892年 伦敦'],a:0,x:'第一届现代奥运会于 1896 年在希腊雅典举办。'},
+{c:'奥运',t:'奥运五环的颜色分别是？',o:['红黄蓝绿黑','红橙黄绿蓝','蓝黄黑绿红','蓝红绿黄白'],a:2,x:'奥运五环从左到右为蓝、黄、黑、绿、红，代表五大洲的团结。'},
+{c:'奥运',t:'博尔特的 100 米世界纪录是多少秒？',o:['9.69秒','9.58秒','9.72秒','9.63秒'],a:1,x:'牙买加"闪电"博尔特在 2009 年柏林世锦赛上创造了 9.58 秒的 100 米世界纪录。'},
+{c:'奥运',t:'奥运会历史上获得金牌最多的运动员是？',o:['博尔特','菲尔普斯','拉蒂尼娜','努尔米'],a:1,x:'美国游泳运动员迈克尔·菲尔普斯以 23 枚奥运金牌成为史上最伟大的奥运选手。'},
+{c:'奥运',t:'奥运会马拉松比赛的标准距离是多少？',o:['40公里','42公里','42.195公里','45公里'],a:2,x:'马拉松标准距离为 42.195 公里（26.2 英里），源自 1908 年伦敦奥运会的赛程调整。'},
+{c:'奥运',t:'以下哪项运动在 2020 年东京奥运会首次成为正式比赛项目？',o:['棒垒球','滑板','空手道','以上都是'],a:3,x:'滑板、冲浪、攀岩、空手道和棒垒球（回归）都在 2020 年东京奥运会上首次/回归亮相。'},
+{c:'奥运',t:'2024 年巴黎奥运会的开幕式在哪里举行？',o:['法兰西体育场','塞纳河','香榭丽舍大道','埃菲尔铁塔'],a:1,x:'2024 年巴黎奥运会的开幕式史无前例地在塞纳河上举行，而非传统的体育场。'},
+{c:'奥运',t:'冬季奥运会与夏季奥运会目前的举办间隔是？',o:['同一年举办','相隔2年','相隔4年','没有固定间隔'],a:1,x:'自 1994 年起，冬奥会和夏奥会交替每隔两年举行一次。'},
+{c:'奥运',t:'哪个国家举办过最多次夏季奥运会？',o:['美国','英国','法国','日本'],a:0,x:'美国举办过 4 次夏季奥运会（1904、1932、1984、1996），是举办次数最多的国家。'},
+{c:'奥运',t:'奥运格言"更快、更高、更强"在2021年增加了哪个词？',o:['更美','更远','更团结','更公平'],a:2,x:'2021年，国际奥委会将格言更新为"更快、更高、更强——更团结"（Citius, Altius, Fortius – Communiter）。'},
+{c:'奥运',t:'乒乓球从哪届奥运会开始成为正式比赛项目？',o:['1984年洛杉矶','1988年汉城','1992年巴塞罗那','1996年亚特兰大'],a:1,x:'乒乓球于 1988 年汉城（首尔）奥运会成为正式比赛项目。'},
+{c:'奥运',t:'体操比赛中满分是多少分？在2006年之前，哪位运动员首次获得这个满分？',o:['10分 纳迪娅·科马内奇','10分 西蒙·拜尔斯','9.9分 拉蒂尼娜','10分 李宁'],a:0,x:'罗马尼亚选手纳迪娅·科马内奇在 1976 年蒙特利尔奥运会上获得体操史上第一个满分 10 分。'},
+{c:'奥运',t:'刘翔在2004年雅典奥运会110米栏决赛中跑出了多少秒？',o:['13.14秒','12.91秒','12.88秒','13.05秒'],a:1,x:'刘翔以 12.91 秒的成绩平世界纪录夺冠，成为中国第一位男子田径奥运冠军。'},
+
+// ====== 综合 (10) ======
+{c:'综合',t:'以下哪项运动的场地面积最大？',o:['足球','橄榄球','板球','高尔夫球场'],a:3,x:'高尔夫球场面积通常在 30-80 公顷，远大于其他运动场地。'},
+{c:'综合',t:'F1 赛车一级方程式大奖赛中，最多夺得世界冠军的车手是？',o:['迈克尔·舒马赫','阿尔顿·塞纳','刘易斯·汉密尔顿','马克斯·维斯塔潘'],a:2,x:'刘易斯·汉密尔顿与舒马赫各持有7个冠军头衔，但汉密尔顿仍在役（截至2024赛季末）。'},
+{c:'综合',t:'高尔夫球运动中，低于标准杆一杆被称为？',o:['老鹰球','小鸟球','博基','信天翁'],a:1,x:'小鸟球（Birdie）指比标准杆少一杆完成该洞；老鹰（Eagle）少两杆。'},
+{c:'综合',t:'拳击比赛中，最重的重量级是？',o:['次重量级','重量级','超重量级','轻重量级'],a:2,x:'超重量级（Super Heavyweight / Heavyweight+）是拳击中最重的级别，无体重上限。'},
+{c:'综合',t:'哪项运动被称为"绅士运动"？',o:['高尔夫','板球','马球','击剑'],a:1,x:'板球（Cricket）因其传统礼仪和风度被称为"绅士运动"。'},
+{c:'综合',t:'游泳比赛中，以下哪种泳姿是唯一要求运动员面朝上出发的？',o:['蝶泳','蛙泳','仰泳','自由泳'],a:2,x:'仰泳（Backstroke）是唯一在水中仰面出发和全程仰面游的泳姿。'},
+{c:'综合',t:'UFC 综合格斗中，八角笼的形状是？',o:['圆形','正方形','八边形','六边形'],a:2,x:'UFC 标志性的比赛场地"Octagon"是八边形的围笼。'},
+{c:'综合',t:'环法自行车赛的总冠军穿什么颜色的领骑衫？',o:['红色','绿色','黄色','白色'],a:2,x:'环法自行车赛的总成绩第一名穿黄色领骑衫（Maillot Jaune）。'},
+{c:'综合',t:'以下哪项运动使用的球最重？',o:['保龄球','铅球','篮球','排球'],a:0,x:'保龄球最重可达 16 磅（约 7.26 公斤），男子铅球也是 7.26 公斤，但保龄球的最大重量与铅球持平，且常规使用中保龄球通常更重。'},
+{c:'综合',t:'世界上观看人数最多的单场体育赛事是？',o:['NBA 总决赛','奥运会开幕式','FIFA 世界杯决赛','超级碗'],a:2,x:'FIFA 世界杯决赛的全球观众通常超过 10 亿人次，是单场体育赛事中观看人数最多的。'}
+];
+
+// ============ 状态 ============
+const LS_KEY='sports_trivia_lb';
+let pid='',qCount=30,curQ=[],qi=0,score=0,catScore={},catTotal={},answered=false,timerID=null,timeLeft=20;
+
+document.getElementById('pid').addEventListener('input',e=>{
+  pid=e.target.value.trim();
+  document.getElementById('startBtn').disabled=!pid;
+});
+
+function setN(el){
+  document.querySelectorAll('.sopt').forEach(x=>x.classList.remove('sel'));
+  el.classList.add('sel');
+  qCount=parseInt(el.dataset.n);
+}
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.random()*i+1|0;[a[i],a[j]]=[a[j],a[i]]}return a;
+}
+
+function startGame(){
+  if(!pid)return;
+  // Pick qCount questions distributed proportionally across categories
+  const pool=shuffle(DB);
+  curQ=pool.slice(0,Math.min(qCount,pool.length));
+  qi=0;score=0;
+  CATS.forEach(c=>{catScore[c]=0;catTotal[c]=0});
+  curQ.forEach(q=>catTotal[q.c]=(catTotal[q.c]||0)+1);
+  showScreen('s-quiz');renderQ();
+}
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)}
+
+function renderQ(){
+  answered=false;
+  const q=curQ[qi];
+  document.getElementById('qno').textContent=`${String(qi+1).padStart(2,'0')}/${curQ.length}`;
+  document.getElementById('fill').style.width=Math.round(qi/curQ.length*100)+'%';
+  document.getElementById('sd').textContent=`🏆 ${score}`;
+  document.getElementById('nextBtn').classList.remove('show');
+
+  const keys='ABCD';
+  let html=`<div class="qcat">${q.c}</div><div class="qtext">${q.t}</div><div class="opts">`;
+  q.o.forEach((o,i)=>{
+    html+=`<button class="opt" onclick="answer(${i})"><span class="key">${keys[i]}</span><span>${o}</span></button>`;
+  });
+  html+=`</div><div class="explain" id="expl">${q.x||''}</div>`;
+  document.getElementById('qcard').innerHTML=html;
+
+  // Timer
+  timeLeft=20;
+  document.getElementById('timer').textContent='20';
+  document.getElementById('timer').classList.remove('warn');
+  clearInterval(timerID);
+  timerID=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer').textContent=timeLeft;
+    if(timeLeft<=5)document.getElementById('timer').classList.add('warn');
+    if(timeLeft<=0){clearInterval(timerID);autoFail()}
+  },1000);
+}
+
+function autoFail(){
+  if(answered)return;
+  answered=true;
+  const q=curQ[qi];
+  const opts=document.querySelectorAll('.opt');
+  opts.forEach((o,i)=>{
+    o.classList.add('locked');
+    if(i===q.a)o.classList.add('correct');
+  });
+  document.getElementById('expl').classList.add('show');
+  document.getElementById('nextBtn').classList.add('show');
+  document.getElementById('nextBtn').textContent=qi===curQ.length-1?'查看成绩 →':'下一题 →';
+}
+
+function answer(i){
+  if(answered)return;
+  answered=true;
+  clearInterval(timerID);
+  const q=curQ[qi];
+  const opts=document.querySelectorAll('.opt');
+  opts.forEach((o,k)=>{
+    o.classList.add('locked');
+    if(k===q.a)o.classList.add('correct');
+  });
+  if(i===q.a){
+    score++;
+    catScore[q.c]=(catScore[q.c]||0)+1;
+  }else{
+    opts[i].classList.add('wrong');
+  }
+  document.getElementById('sd').textContent=`🏆 ${score}`;
+  document.getElementById('expl').classList.add('show');
+  document.getElementById('nextBtn').classList.add('show');
+  document.getElementById('nextBtn').textContent=qi===curQ.length-1?'查看成绩 →':'下一题 →';
+}
+
+function nextQ(){
+  if(qi<curQ.length-1){qi++;renderQ();}
+  else{finishGame();}
+}
+
+function finishGame(){
+  clearInterval(timerID);
+  // Save to leaderboard
+  const lb=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  const entry={id:pid,score,total:curQ.length,pct:Math.round(score/curQ.length*100),cats:{...catScore},catTotals:{...catTotal},ts:Date.now()};
+  lb.push(entry);
+  localStorage.setItem(LS_KEY,JSON.stringify(lb));
+
+  showScreen('s-result');
+  renderResult(entry,lb);
+}
+
+function renderResult(entry,lb){
+  document.getElementById('finalScore').textContent=entry.pct+'%';
+  document.getElementById('finalOf').textContent=`${score} / ${curQ.length} 正确`;
+  document.getElementById('finalSub').textContent=`玩家 ${pid} · ${curQ.length}题模式`;
+
+  // Rank
+  const sorted=[...lb].sort((a,b)=>b.pct-a.pct);
+  const rank=sorted.findIndex(x=>x.ts===entry.ts)+1;
+  const rankSuf=['','🥇','🥈','🥉'];
+  document.getElementById('rankText').textContent=`排行榜第 ${rank} 名 / 共 ${sorted.length} 人 ${rankSuf[rank]||''}`;
+
+  // Title based on score
+  const p=entry.pct;
+  if(p>=90) document.getElementById('finalTitle').textContent='体育百科全书 🏆';
+  else if(p>=75) document.getElementById('finalTitle').textContent='体育达人 ⭐';
+  else if(p>=60) document.getElementById('finalTitle').textContent='运动爱好者 💪';
+  else if(p>=40) document.getElementById('finalTitle').textContent='偶尔看看比赛 📺';
+  else document.getElementById('finalTitle').textContent='体育小白 🌱';
+
+  // Category bars
+  const cats=CATS.filter(c=>catTotal[c]>0);
+  const barsHtml=cats.map(c=>{
+    const s=catScore[c]||0,t=catTotal[c]||1;
+    const pct=Math.round(s/t*100);
+    return `<div class="cat-bar" data-sport="${c}"><span class="label">${c}</span><div class="track"><div class="fill" style="width:${pct}%"></div></div><span class="val">${s}/${t} (${pct}%)</span></div>`;
+  }).join('');
+  document.getElementById('catBars').innerHTML=barsHtml;
+
+  // Radar chart
+  drawRadar(cats);
+
+  // Analysis
+  const best=cats.reduce((a,b)=>(catScore[a]||0)/(catTotal[a]||1)>(catScore[b]||0)/(catTotal[b]||1)?a:b);
+  const worst=cats.reduce((a,b)=>(catScore[a]||0)/(catTotal[a]||1)<(catScore[b]||0)/(catTotal[b]||1)?a:b);
+  const bestPct=Math.round((catScore[best]||0)/(catTotal[best]||1)*100);
+  const worstPct=Math.round((catScore[worst]||0)/(catTotal[worst]||1)*100);
+  let analysis=`<b>${pid}</b>，你的体育知识总体得分 <b>${entry.pct}%</b>。`;
+  analysis+=`<br><br>📈 <b>最强项目：${best}</b>（正确率 ${bestPct}%）—— `;
+  if(best==='足球') analysis+='你对世界第一运动的了解令人印象深刻，从世界杯历史到战术细节都信手拈来。';
+  else if(best==='篮球') analysis+='你是篮球通！NBA 的历史数据和传奇球星在你脑中如数家珍。';
+  else if(best==='网球') analysis+='网球是你的领域，大满贯的一切秘密你都了如指掌。';
+  else if(best==='橄榄球') analysis+='超级碗和达阵——你对橄榄球的理解远超常人。';
+  else if(best==='棒球') analysis+='从本垒打到世界大赛，你是真正的棒球行家。';
+  else if(best==='冰球') analysis+='冰上项目是你的舒适区，格雷茨基会为你骄傲。';
+  else if(best==='奥运') analysis+='你是奥运百科全书，从古希腊到巴黎奥运无所不知。';
+  else analysis+='你的体育知识面非常广泛。';
+
+  analysis+=`<br><br>📉 <b>提升空间：${worst}</b>（正确率 ${worstPct}%）—— 这个领域还有很大的探索空间！建议多看一些${worst}比赛和纪录片，你会发现全新的精彩世界。`;
+
+  // Overall flavor
+  if(p>=90) analysis+='<br><br>🏆 总评：你是真正的体育百科全书，几乎没有能难住你的题目！';
+  else if(p>=75) analysis+='<br><br>⭐ 总评：你对体育的热爱和了解都让人佩服，继续保持！';
+  else if(p>=50) analysis+='<br><br>💪 总评：你有不错的体育基础，多看几场比赛就能更上一层楼。';
+  else analysis+='<br><br>📺 总评：体育世界精彩纷呈，试着关注一两项你感兴趣的运动吧！';
+
+  document.getElementById('analysis').innerHTML=analysis;
+
+  // Leaderboard
+  renderLB(sorted,entry.ts);
+}
+
+function drawRadar(cats){
+  const c=document.getElementById('radarC');if(!c)return;
+  const ctx=c.getContext('2d');const W=c.width,H=c.height;
+  const cx=W/2,cy=H/2,R=140,n=cats.length;
+  if(n<3)return;
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  for(let g=1;g<=5;g++){
+    ctx.beginPath();
+    for(let i=0;i<n;i++){
+      const a=Math.PI*2*i/n-Math.PI/2;
+      const x=cx+Math.cos(a)*R*g/5,y=cy+Math.sin(a)*R*g/5;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  // Axes & Labels
+  const catColors={'足球':'#4CAF50','篮球':'#FF9800','网球':'#CDDC39','橄榄球':'#795548','棒球':'#F44336','冰球':'#03A9F4','奥运':'#FFD740','综合':'#CE93D8'};
+  ctx.font='600 12px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let i=0;i<n;i++){
+    const a=Math.PI*2*i/n-Math.PI/2;
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);
+    ctx.strokeStyle='rgba(255,255,255,.06)';ctx.stroke();
+    const lx=cx+Math.cos(a)*(R+24),ly=cy+Math.sin(a)*(R+24);
+    ctx.fillStyle=catColors[cats[i]]||'#fff';
+    ctx.fillText(cats[i],lx,ly);
+  }
+
+  // Data polygon
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const a=Math.PI*2*i/n-Math.PI/2;
+    const v=(catScore[cats[i]]||0)/(catTotal[cats[i]]||1);
+    const x=cx+Math.cos(a)*R*v,y=cy+Math.sin(a)*R*v;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle='rgba(0,230,118,.18)';ctx.fill();
+  ctx.strokeStyle='#00E676';ctx.lineWidth=2.5;ctx.stroke();
+
+  // Dots
+  for(let i=0;i<n;i++){
+    const a=Math.PI*2*i/n-Math.PI/2;
+    const v=(catScore[cats[i]]||0)/(catTotal[cats[i]]||1);
+    const x=cx+Math.cos(a)*R*v,y=cy+Math.sin(a)*R*v;
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='#00E676';ctx.fill();
+    ctx.strokeStyle='#0A1628';ctx.lineWidth=2;ctx.stroke();
+  }
+}
+
+function renderLB(sorted,myTs){
+  if(sorted.length===0){document.getElementById('lbWrap').innerHTML='<div class="lb-empty">暂无记录</div>';return}
+  let html='<table class="lb-table"><thead><tr><th>#</th><th>玩家</th><th>得分</th><th>正确率</th><th></th></tr></thead><tbody>';
+  sorted.slice(0,20).forEach((e,i)=>{
+    const me=e.ts===myTs?' me':'';
+    html+=`<tr class="${me}"><td class="rank-cell">${i+1}</td><td>${e.id}</td><td class="score-cell">${e.score}/${e.total}</td><td class="score-cell">${e.pct}%</td><td class="bar-cell"><div class="mini-bar"><div class="mini-fill" style="width:${e.pct}%"></div></div></td></tr>`;
+  });
+  html+='</tbody></table>';
+  document.getElementById('lbWrap').innerHTML=html;
+}
+
+function shareResult(){
+  const cats=CATS.filter(c=>catTotal[c]>0);
+  const catStr=cats.map(c=>`  ${c}: ${Math.round((catScore[c]||0)/(catTotal[c]||1)*100)}%`).join('\n');
+  const text=`🏟️ 体育百科竞答结果\n\n玩家: ${pid}\n总分: ${score}/${curQ.length} (${Math.round(score/curQ.length*100)}%)\n\n分项成绩:\n${catStr}\n\n来挑战 → ${location.href}`;
+  navigator.clipboard.writeText(text).then(()=>alert('✦ 成绩已复制到剪贴板！'));
+}
+
+function clearLB(){
+  if(confirm('确定清除排行榜所有记录吗？')){
+    localStorage.removeItem(LS_KEY);
+    document.getElementById('lbWrap').innerHTML='<div class="lb-empty">排行榜已清空</div>';
+  }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('s-quiz').classList.contains('active')){
+    const map={a:0,b:1,c:2,d:3,'1':0,'2':1,'3':2,'4':3};
+    if(e.key.toLowerCase() in map && !answered) answer(map[e.key.toLowerCase()]);
+    if((e.key==='Enter'||e.key===' ')&&answered) nextQ();
+  }
+});
+</script>
+</body>
+</html>

@@ -132,6 +132,27 @@ canvas#radarC{max-width:100%;margin:0 auto;display:block}
 .actions button{padding:12px 28px;background:var(--card);border:1px solid var(--border);color:var(--t2);border-radius:50px;cursor:pointer;font-family:inherit;font-size:13px;letter-spacing:.1em;transition:all .2s}
 .actions button:hover{border-color:var(--green);color:var(--green)}
 
+/* Resume banner */
+.resume-banner{background:linear-gradient(135deg,rgba(255,215,64,.08),rgba(0,230,118,.08));border:1px solid rgba(255,215,64,.25);border-radius:14px;padding:20px 24px;margin:24px auto;max-width:500px;text-align:center;animation:fade .4s}
+.resume-banner .rb-title{font-size:14px;color:var(--gold);font-weight:700;margin-bottom:8px;letter-spacing:.05em}
+.resume-banner .rb-info{font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.6}
+.resume-banner .rb-btns{display:flex;gap:10px;justify-content:center}
+.resume-banner .rb-btns button{padding:10px 24px;border-radius:30px;border:1px solid var(--border);background:var(--card);color:var(--t2);font-family:inherit;font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.05em}
+.resume-banner .rb-btns button.rb-go{background:linear-gradient(135deg,var(--green),#00C853);color:var(--bg);border:none;font-weight:700}
+.resume-banner .rb-btns button:hover{transform:translateY(-1px)}
+
+/* Toast */
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-120px);background:var(--card);border:1px solid var(--green);border-radius:12px;padding:14px 28px;font-size:13px;color:var(--green);z-index:100;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .4s ease;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Import/Export */
+.lb-tools{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+.lb-tools button{padding:6px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--t3);cursor:pointer;font-family:inherit;transition:all .2s}
+.lb-tools button:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* Saved indicator */
+.saved-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-left:8px;animation:pulse 2s infinite}
+
 @media(max-width:640px){
   .wrap{padding:20px 14px 60px}
   .intro h1{font-size:32px}
@@ -182,6 +203,14 @@ canvas#radarC{max-width:100%;margin:0 auto;display:block}
         </div>
       </div>
     </div>
+    <div class="resume-banner" id="resumeBanner" style="display:none">
+      <div class="rb-title">💾 检测到未完成的答题</div>
+      <div class="rb-info" id="resumeInfo"></div>
+      <div class="rb-btns">
+        <button onclick="dismissResume()">放弃，重新开始</button>
+        <button class="rb-go" onclick="resumeGame()">继续答题 →</button>
+      </div>
+    </div>
     <button class="btn" id="startBtn" onclick="startGame()" disabled>开 始 竞 答</button>
   </div>
 </div>
@@ -193,7 +222,7 @@ canvas#radarC{max-width:100%;margin:0 auto;display:block}
     <div class="track"><div class="fill" id="fill"></div></div>
     <span class="timer" id="timer">20</span>
     <span class="mode-badge" id="modeBadge">冲刺赛</span>
-    <span class="score-disp" id="sd">🏆 0</span>
+    <span class="score-disp" id="sd">🏆 0</span><span class="saved-dot" id="saveDot" title="已自动保存" style="display:none"></span>
   </div></div>
   <div class="qcard" id="qcard"></div>
   <div class="qnav"><button id="nextBtn" onclick="nextQ()">下一题 →</button></div>
@@ -231,15 +260,22 @@ canvas#radarC{max-width:100%;margin:0 auto;display:block}
     <div class="sec-head"><span class="sec-icon">🏅</span><span class="sec-title">排行榜</span><span class="sec-sub">Leaderboard</span></div>
     <div class="lb-tabs" id="lbTabs"></div>
     <div id="lbWrap"></div>
+    <div class="lb-tools">
+      <button onclick="exportLB()">📤 导出数据</button>
+      <button onclick="promptImportLB()">📥 导入数据</button>
+    </div>
   </div>
 
   <div class="actions">
     <button onclick="location.reload()">重新挑战</button>
-    <button onclick="shareResult()">复制成绩</button>
+    <button onclick="shareResult()">复制成绩（含排行榜链接）</button>
+    <button onclick="exportLB()">导出排行榜</button>
+    <button onclick="promptImportLB()">导入排行榜</button>
     <button onclick="clearLB()">清除排行榜</button>
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
 </div>
 
 <script>
@@ -519,7 +555,8 @@ const DB=[
 ];
 
 // ============ 状态 ============
-let pid='',mode='sprint',curQ=[],qi=0,score=0,catScore={},catTotal={},answered=false,timerID=null,timeLeft=20;
+const SAVE_KEY='sports_trivia_save';
+let pid='',mode='sprint',curQ=[],curQIdx=[],qi=0,score=0,catScore={},catTotal={},answered=false,timerID=null,timeLeft=20,answers=[];
 
 document.getElementById('pid').addEventListener('input',e=>{
   pid=e.target.value.trim();
@@ -534,21 +571,74 @@ function setMode(el){
 
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.random()*i+1|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
-function getPool(){
+function getPoolIndices(){
   const pMap={sprint:1,standard:2,marathon:3};
-  return shuffle(DB.filter(q=>q.p===pMap[mode]));
+  const indices=[];
+  DB.forEach((q,i)=>{if(q.p===pMap[mode])indices.push(i)});
+  return shuffle(indices);
 }
 
 function getCount(){return{sprint:30,standard:50,marathon:100}[mode]}
 
+// ============ 自动保存 ============
+function saveProgress(){
+  const state={pid,mode,qIdx:curQIdx,qi,answers,score,catScore:{...catScore},catTotal:{...catTotal},ts:Date.now()};
+  localStorage.setItem(SAVE_KEY,JSON.stringify(state));
+  // flash save dot
+  const dot=document.getElementById('saveDot');
+  dot.style.display='inline-block';
+  setTimeout(()=>dot.style.display='none',2000);
+}
+
+function clearSave(){localStorage.removeItem(SAVE_KEY)}
+
+function checkResume(){
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(!raw)return;
+  try{
+    const s=JSON.parse(raw);
+    if(!s.pid||!s.qIdx||s.qi>=s.qIdx.length)throw 0;
+    const banner=document.getElementById('resumeBanner');
+    const info=document.getElementById('resumeInfo');
+    info.textContent=`玩家 ${s.pid} · ${MODE_NAMES[s.mode]} · 已完成 ${s.qi}/${s.qIdx.length} 题 · 当前得分 ${s.score}`;
+    banner.style.display='block';
+    // pre-fill ID
+    document.getElementById('pid').value=s.pid;
+    pid=s.pid;
+    document.getElementById('startBtn').disabled=false;
+  }catch(e){clearSave()}
+}
+
+function dismissResume(){
+  document.getElementById('resumeBanner').style.display='none';
+  clearSave();
+}
+
+function resumeGame(){
+  const s=JSON.parse(localStorage.getItem(SAVE_KEY));
+  pid=s.pid;mode=s.mode;
+  curQIdx=s.qIdx;
+  curQ=curQIdx.map(i=>DB[i]);
+  qi=s.qi;score=s.score;answers=s.answers||[];
+  catScore={...s.catScore};catTotal={...s.catTotal};
+  document.getElementById('resumeBanner').style.display='none';
+  showScreen('s-quiz');
+  document.getElementById('modeBadge').textContent=MODE_NAMES[mode];
+  renderQ();
+}
+
+// ============ 开始游戏 ============
 function startGame(){
   if(!pid)return;
-  const pool=getPool();
+  clearSave();
+  const poolIdx=getPoolIndices();
   const n=getCount();
-  curQ=pool.slice(0,Math.min(n,pool.length));
-  qi=0;score=0;
+  curQIdx=poolIdx.slice(0,Math.min(n,poolIdx.length));
+  curQ=curQIdx.map(i=>DB[i]);
+  qi=0;score=0;answers=[];
   CATS.forEach(c=>{catScore[c]=0;catTotal[c]=0});
   curQ.forEach(q=>catTotal[q.c]=(catTotal[q.c]||0)+1);
+  saveProgress();
   showScreen('s-quiz');
   document.getElementById('modeBadge').textContent=MODE_NAMES[mode];
   renderQ();
@@ -584,15 +674,18 @@ function renderQ(){
 
 function autoFail(){
   if(answered)return;answered=true;
+  answers[qi]=-1;// -1 = timeout
   const q=curQ[qi];
   document.querySelectorAll('.opt').forEach((o,i)=>{o.classList.add('locked');if(i===q.a)o.classList.add('correct')});
   document.getElementById('expl').classList.add('show');
   document.getElementById('nextBtn').classList.add('show');
   document.getElementById('nextBtn').textContent=qi===curQ.length-1?'查看成绩 →':'下一题 →';
+  saveProgress();
 }
 
 function answer(i){
   if(answered)return;answered=true;clearInterval(timerID);
+  answers[qi]=i;
   const q=curQ[qi];
   document.querySelectorAll('.opt').forEach((o,k)=>{o.classList.add('locked');if(k===q.a)o.classList.add('correct')});
   if(i===q.a){score++;catScore[q.c]=(catScore[q.c]||0)+1}
@@ -601,12 +694,17 @@ function answer(i){
   document.getElementById('expl').classList.add('show');
   document.getElementById('nextBtn').classList.add('show');
   document.getElementById('nextBtn').textContent=qi===curQ.length-1?'查看成绩 →':'下一题 →';
+  saveProgress();
 }
 
-function nextQ(){if(qi<curQ.length-1){qi++;renderQ()}else finishGame()}
+function nextQ(){
+  if(qi<curQ.length-1){qi++;saveProgress();renderQ()}
+  else finishGame();
+}
 
 function finishGame(){
   clearInterval(timerID);
+  clearSave();// game done, no more save needed
   const lb=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
   const entry={id:pid,mode,score,total:curQ.length,pct:Math.round(score/curQ.length*100),cats:{...catScore},catTotals:{...catTotal},ts:Date.now()};
   lb.push(entry);
@@ -715,21 +813,113 @@ function switchLB(m,myTs){
   document.getElementById('lbWrap').innerHTML=html;
 }
 
+// ============ URL 排行榜同步 ============
+function encodeLB(){
+  const lb=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  // compact: only essential fields, top 20 per mode
+  const compact=[];
+  Object.keys(MODE_NAMES).forEach(m=>{
+    const top=lb.filter(x=>x.mode===m).sort((a,b)=>b.pct-a.pct).slice(0,15);
+    top.forEach(e=>compact.push({i:e.id,m:e.mode,s:e.score,n:e.total,p:e.pct,t:e.ts}));
+  });
+  try{return btoa(unescape(encodeURIComponent(JSON.stringify(compact))))}catch(e){return''}
+}
+
+function decodeLB(str){
+  try{return JSON.parse(decodeURIComponent(escape(atob(str))))}catch(e){return null}
+}
+
+function importScores(data){
+  if(!data||!Array.isArray(data))return 0;
+  const lb=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  let added=0;
+  data.forEach(d=>{
+    // deduplicate by id+mode+timestamp
+    const exists=lb.some(e=>e.id===d.i&&e.mode===d.m&&e.ts===d.t);
+    if(!exists){
+      lb.push({id:d.i,mode:d.m,score:d.s,total:d.n,pct:d.p,cats:{},catTotals:{},ts:d.t});
+      added++;
+    }
+  });
+  if(added>0)localStorage.setItem(LS_KEY,JSON.stringify(lb));
+  return added;
+}
+
+function checkURLImport(){
+  const params=new URLSearchParams(location.search);
+  const d=params.get('d');
+  if(d){
+    const data=decodeLB(d);
+    const n=importScores(data);
+    // clean URL without reload
+    history.replaceState(null,'',location.pathname);
+    if(n>0)showToast(`✦ 已导入 ${n} 条排行榜记录！`);
+  }
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
 function shareResult(){
   const cats=CATS.filter(c=>catTotal[c]>0);
   const catStr=cats.map(c=>`  ${c}: ${Math.round((catScore[c]||0)/(catTotal[c]||1)*100)}%`).join('\n');
-  const text=`🏟️ 体育百科竞答 · ${MODE_NAMES[mode]}\n\n玩家: ${pid}\n总分: ${score}/${curQ.length} (${Math.round(score/curQ.length*100)}%)\n\n分项:\n${catStr}\n\n来挑战 → ${location.href}`;
-  navigator.clipboard.writeText(text).then(()=>alert('✦ 已复制！'));
+  // build URL with encoded leaderboard
+  const encoded=encodeLB();
+  const baseUrl=location.origin+location.pathname;
+  const shareUrl=encoded?`${baseUrl}?d=${encoded}`:baseUrl;
+  const text=`🏟️ 体育百科竞答 · ${MODE_NAMES[mode]}\n\n玩家: ${pid}\n总分: ${score}/${curQ.length} (${Math.round(score/curQ.length*100)}%)\n\n分项:\n${catStr}\n\n来挑战（点击链接自动同步排行榜）:\n${shareUrl}`;
+  navigator.clipboard.writeText(text).then(()=>showToast('✦ 成绩和排行榜链接已复制！'));
+}
+
+function exportLB(){
+  const encoded=encodeLB();
+  if(!encoded){showToast('排行榜为空');return}
+  navigator.clipboard.writeText(encoded).then(()=>showToast('✦ 排行榜数据已复制！发给朋友，让他们用"导入"功能同步'));
+}
+
+function promptImportLB(){
+  const code=prompt('请粘贴朋友分享的排行榜数据：');
+  if(!code)return;
+  const data=decodeLB(code.trim());
+  if(!data){showToast('❌ 数据格式无效');return}
+  const n=importScores(data);
+  if(n>0){
+    showToast(`✦ 成功导入 ${n} 条新记录！`);
+    // refresh leaderboard if on result screen
+    if(document.getElementById('s-result').classList.contains('active')){
+      const lb=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+      renderLBTabs(lb,0);
+    }
+  }else{
+    showToast('所有记录已存在，无需导入');
+  }
 }
 
 function clearLB(){if(confirm('确定清除全部排行榜？')){localStorage.removeItem(LS_KEY);document.getElementById('lbWrap').innerHTML='<div class="lb-empty">已清空</div>'}}
 
+// ============ 键盘 & 初始化 ============
 document.addEventListener('keydown',e=>{
   if(!document.getElementById('s-quiz').classList.contains('active'))return;
   const map={a:0,b:1,c:2,d:3,'1':0,'2':1,'3':2,'4':3};
   if(e.key.toLowerCase()in map&&!answered)answer(map[e.key.toLowerCase()]);
   if((e.key==='Enter'||e.key===' ')&&answered)nextQ();
 });
+
+// page load: check URL import + check resume
+checkURLImport();
+checkResume();
+// show existing LB count on intro
+(function(){
+  const lb=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  if(lb.length>0){
+    const desc=document.querySelector('.intro .desc');
+    desc.innerHTML+=`<br><span style="color:var(--gold);font-size:13px">📊 排行榜已有 ${lb.length} 条记录（${new Set(lb.map(x=>x.id)).size} 名玩家）</span>`;
+  }
+})();
 </script>
 </body>
 </html>
